@@ -1,0 +1,25 @@
+name: code-review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run Code Review Bot
+        uses: ./code-review-bot
+        with:
+          model: openai/gpt-4.1
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          use_github_token: "true"
