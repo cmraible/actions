@@ -4,7 +4,7 @@ This repository hosts a collection of reusable GitHub Actions for personal proje
 
 ## Available Actions
 
-- **Hello World** (`actions/hello-world`): Generates a greeting and surfaces it as output `greeting`.
+- **Hello World** (`hello-world`): Generates a greeting and surfaces it as output `greeting`.
 
 ## Usage
 
@@ -13,7 +13,7 @@ jobs:
   greet:
     runs-on: ubuntu-latest
     steps:
-      - uses: cmraible/actions/actions/hello-world@main
+      - uses: cmraible/actions/hello-world@main
         id: hello
         with:
           name: Octocat
@@ -22,4 +22,4 @@ jobs:
 
 ## Adding New Actions
 
-Place each action in `actions/<action-name>/action.yml` so they can be referenced with `cmraible/actions/actions/<action-name>@ref`.
+Place each action in `<action-name>/action.yml` at the repo root so they can be referenced with `cmraible/actions/<action-name>@ref`.
