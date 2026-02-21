@@ -1,0 +1,107 @@
+name: PR Author Bot
+description: Automate PR creation on issue assignment and respond to change requests using opencode.
+inputs:
+  model:
+    description: Model to use with opencode (for example, openai/gpt-5.3-codex).
+    required: true
+  openai_api_key:
+    description: API key passed to opencode as OPENAI_API_KEY.
+    required: true
+  agent:
+    description: Agent to use. Falls back to opencode defaults when omitted.
+    required: false
+  share:
+    description: Share the opencode session (defaults to opencode behavior when omitted).
+    required: false
+  use_github_token:
+    description: Use GITHUB_TOKEN instead of an opencode app token.
+    required: false
+    default: "false"
+  mentions:
+    description: Comma-separated trigger phrases. Leave empty to disable mention filtering.
+    required: false
+    default: ""
+  variant:
+    description: Model variant for provider-specific reasoning effort.
+    required: false
+  oidc_base_url:
+    description: Base URL for OIDC token exchange API.
+    required: false
+  issue_prompt:
+    description: Override the default prompt used when an issue assignment triggers the bot.
+    required: false
+  review_prompt:
+    description: Override the default prompt used when a change-request review triggers the bot.
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: Configure PR Author Bot prompt
+      id: prompt
+      shell: bash
+      env:
+        ISSUE_PROMPT_INPUT: ${{ inputs.issue_prompt }}
+        REVIEW_PROMPT_INPUT: ${{ inputs.review_prompt }}
+        EVENT_NAME: ${{ github.event_name }}
+        EVENT_ACTION: ${{ github.event.action }}
+        REVIEW_STATE: ${{ github.event.review.state || '' }}
+      run: |
+        set -euo pipefail
+
+        STATUS="skip"
+        PROMPT_CONTENT=""
+
+        if [ "$EVENT_NAME" = "issues" ] && [ "$EVENT_ACTION" = "assigned" ]; then
+          STATUS="issue"
+          PROMPT_CONTENT="${ISSUE_PROMPT_INPUT:-}"
+
+          if [ -z "$PROMPT_CONTENT" ]; then
+            read -r -d '' PROMPT_CONTENT <<'EOF' || true
+You are PR Author Bot. An issue has been assigned to you.
+- Understand the assigned issue and plan the minimal set of changes needed.
+- Implement the solution, keeping edits scoped to the issue.
+- Open a pull request that references the issue and summarizes the work.
+- Run existing checks or tests when available before finishing.
+EOF
+          fi
+        elif [ "$EVENT_NAME" = "pull_request_review" ] && [ "$REVIEW_STATE" = "changes_requested" ]; then
+          STATUS="review"
+          PROMPT_CONTENT="${REVIEW_PROMPT_INPUT:-}"
+
+          if [ -z "$PROMPT_CONTENT" ]; then
+            read -r -d '' PROMPT_CONTENT <<'EOF' || true
+You are PR Author Bot. A pull request review requested changes.
+- Read the review feedback and address each item with focused edits.
+- Push the updates to the PR branch.
+- Add a concise PR comment explaining what you changed and how feedback was handled.
+- Avoid unrelated refactors or churn.
+EOF
+          fi
+        else
+          echo "status=skip" >> "$GITHUB_OUTPUT"
+          echo "prompt=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        {
+          echo "prompt<<'EOP'"
+          echo "$PROMPT_CONTENT"
+          echo "EOP"
+        } >> "$GITHUB_OUTPUT"
+
+        echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+
+    - name: Run opencode
+      if: steps.prompt.outputs.status != 'skip'
+      uses: anomalyco/opencode/github@latest
+      with:
+        model: ${{ inputs.model }}
+        agent: ${{ inputs.agent }}
+        share: ${{ inputs.share }}
+        prompt: ${{ steps.prompt.outputs.prompt }}
+        use_github_token: ${{ inputs.use_github_token }}
+        mentions: ${{ inputs.mentions }}
+        variant: ${{ inputs.variant }}
+        oidc_base_url: ${{ inputs.oidc_base_url }}
+      env:
+        OPENAI_API_KEY: ${{ inputs.openai_api_key }}
