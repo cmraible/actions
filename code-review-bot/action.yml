@@ -37,6 +37,9 @@ runs:
         REVIEW_PROMPT_INPUT: ${{ inputs.review_prompt }}
         EVENT_NAME: ${{ github.event_name }}
         EVENT_ACTION: ${{ github.event.action }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO_OWNER: ${{ github.repository_owner }}
+        REPO_NAME: ${{ github.event.repository.name }}
       run: |
         set -euo pipefail
 
@@ -71,6 +74,16 @@ runs:
 
         echo "status=$STATUS" >> "$GITHUB_OUTPUT"
 
+        # Build a synthetic issue_comment event so the opencode binary uses its
+        # comment-mode code path, where the TOKEN env var skips the collaborator
+        # permission check (which fails for bot actors like Copilot).
+        MOCK_EVENT=$(jq -cn \
+          --arg owner "$REPO_OWNER" \
+          --arg repo  "$REPO_NAME" \
+          --argjson number "$PR_NUMBER" \
+          '{"eventName":"issue_comment","repo":{"owner":$owner,"repo":$repo},"actor":$owner,"payload":{"issue":{"number":$number,"pull_request":{}},"comment":{"id":0,"body":"/opencode review"}}}')
+        echo "mock_event=$MOCK_EVENT" >> "$GITHUB_OUTPUT"
+
     - name: Run opencode
       if: steps.prompt.outputs.status != 'skip'
       uses: anomalyco/opencode/github@latest
@@ -86,3 +99,4 @@ runs:
         OPENAI_API_KEY: ${{ inputs.openai_api_key }}
         GITHUB_TOKEN: ${{ github.token }}
         TOKEN: ${{ github.token }}
+        MOCK_EVENT: ${{ steps.prompt.outputs.mock_event }}
