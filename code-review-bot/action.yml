@@ -52,14 +52,13 @@ runs:
           PROMPT_CONTENT="${REVIEW_PROMPT_INPUT:-}"
 
           if [ -z "$PROMPT_CONTENT" ]; then
-            read -r -d '' PROMPT_CONTENT <<'EOF' || true
-You are Code Review Bot. A pull request has been opened or updated.
-- Check out the pull request branch locally and examine the changed files.
-- Review the code for correctness, security issues, style problems, and potential bugs.
-- Post your findings as a pull request review using inline comments on the relevant lines where possible.
-- Summarize your overall assessment in the review body.
-- Be constructive and specific; reference exact lines or functions when noting an issue.
-EOF
+            PROMPT_CONTENT="$(printf '%s\n' \
+              'You are Code Review Bot. A pull request has been opened or updated.' \
+              '- Check out the pull request branch locally and examine the changed files.' \
+              '- Review the code for correctness, security issues, style problems, and potential bugs.' \
+              '- Post your findings as a pull request review using inline comments on the relevant lines where possible.' \
+              '- Summarize your overall assessment in the review body.' \
+              '- Be constructive and specific; reference exact lines or functions when noting an issue.')"
           fi
         else
           echo "status=skip" >> "$GITHUB_OUTPUT"
