@@ -85,3 +85,4 @@ runs:
       env:
         OPENAI_API_KEY: ${{ inputs.openai_api_key }}
         GITHUB_TOKEN: ${{ github.token }}
+        TOKEN: ${{ github.token }}
