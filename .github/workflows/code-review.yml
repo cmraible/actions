@@ -6,6 +6,7 @@ on:
 
 jobs:
   code-review:
+    if: github.actor_type != 'Bot'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
