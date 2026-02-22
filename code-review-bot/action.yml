@@ -67,7 +67,7 @@ runs:
         fi
 
         {
-          echo "prompt<<'EOP'"
+          echo "prompt<<EOP"
           echo "$PROMPT_CONTENT"
           echo "EOP"
         } >> "$GITHUB_OUTPUT"
