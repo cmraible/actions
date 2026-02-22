@@ -21,9 +21,6 @@ inputs:
     description: Comma-separated trigger phrases. Leave empty to disable mention filtering.
     required: false
     default: ""
-  variant:
-    description: Model variant for provider-specific reasoning effort.
-    required: false
   oidc_base_url:
     description: Base URL for OIDC token exchange API.
     required: false
@@ -99,7 +96,7 @@ runs:
         prompt: ${{ steps.prompt.outputs.prompt }}
         use_github_token: ${{ inputs.use_github_token }}
         mentions: ${{ inputs.mentions }}
-        variant: ${{ inputs.variant }}
         oidc_base_url: ${{ inputs.oidc_base_url }}
       env:
         OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+        GITHUB_TOKEN: ${{ github.token }}
